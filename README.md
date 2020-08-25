@@ -1,1 +1,2 @@
 # readPWM_and_output
+djiA3からの出力（PWM）をよみとってそのままモータに出力するプログラム
