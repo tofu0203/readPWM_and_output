@@ -5,7 +5,7 @@
 // -----adafruit_pwm_servo_driver--------
 #include <Wire.h>
 #include "my_Adafruit_PWMServoDriver.h"
-#define SERVO_FREQ 500
+#define SERVO_FREQ 450
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 //------ros-------
@@ -14,7 +14,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #include <std_msgs/Float32.h>
 ros::NodeHandle nh;
 std_msgs::Float32MultiArray array_msg;
-ros::Publisher pub("array_pub", &array_msg);
+ros::Publisher arduino_data("array_pub", &array_msg);
 
 //------input motor setting------
 const int m1_input_pin = 28;
@@ -82,7 +82,7 @@ void setup()
 
     nh.getHardware()->setBaud(115200);
     nh.initNode();
-    nh.advertise(pub);
+    nh.advertise(arduino_data);
 
     //   ---PWMshield--------
     pwm.begin();
@@ -115,8 +115,8 @@ void loop()
     }
     else
     {
-        // pub_data.data[0] = analogRead(A0);
-        // arduino_data.publish(&pub_data);
+        array_msg.data[0] = analogRead(A0);
+        arduino_data.publish(&array_msg);
     }
     nh.spinOnce();
     delayMicroseconds(500);
