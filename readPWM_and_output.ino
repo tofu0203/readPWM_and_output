@@ -69,7 +69,7 @@ void yawCallback(const std_msgs::Float32MultiArray &command_value)
     pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
     pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
     pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
-    nh.loginfo(String(brushless1_command).c_str());
+    // nh.loginfo(String(brushless1_command).c_str());
 }
 
 ros::Subscriber<std_msgs::Float32MultiArray> sub("yaw_command", &yawCallback);
@@ -77,8 +77,8 @@ ros::Subscriber<std_msgs::Float32MultiArray> sub("yaw_command", &yawCallback);
 void setup()
 {
     //-----ros------
-    array_msg.data_length = 12;
-    array_msg.data = (float *)malloc(sizeof(float) * 12);
+    array_msg.data_length = 8;
+    array_msg.data = (float *)malloc(sizeof(float) * 8);
 
     nh.getHardware()->setBaud(115200);
     nh.initNode();
@@ -115,7 +115,25 @@ void loop()
     }
     else
     {
-        array_msg.data[0] = analogRead(A0);
+        brushless1_command = input_motor1.GetPwmInput();
+        brushless2_command = input_motor2.GetPwmInput();
+        brushless3_command = input_motor3.GetPwmInput();
+        brushless4_command = input_motor4.GetPwmInput();
+
+        // output motor
+        pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
+        pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
+        pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
+        pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
+        //ros output
+        array_msg.data[0] = brushless1_command;
+        array_msg.data[1] = brushless2_command;
+        array_msg.data[2] = brushless3_command;
+        array_msg.data[3] = brushless4_command;
+        array_msg.data[4] = 0.25 * (3 * brushless1_command + brushless2_command - brushless3_command + brushless4_command);
+        array_msg.data[5] = 0.25 * (brushless1_command + 3 * brushless2_command + brushless3_command - brushless4_command);
+        array_msg.data[6] = 0.25 * (-brushless1_command + brushless2_command + 3 * brushless3_command + brushless4_command);
+        array_msg.data[7] = 0.25 * (brushless1_command - brushless2_command + brushless3_command + 3 * brushless4_command);
         arduino_data.publish(&array_msg);
     }
     nh.spinOnce();
