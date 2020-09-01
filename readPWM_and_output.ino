@@ -11,7 +11,6 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 //------ros-------
 #include <ros.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <std_msgs/Float32.h>
 ros::NodeHandle nh;
 std_msgs::Float32MultiArray array_msg;
 ros::Publisher arduino_data("array_pub", &array_msg);
@@ -59,20 +58,22 @@ int brushless4_command;
 
 void yawCallback(const std_msgs::Float32MultiArray &command_value)
 {
-    brushless1_command = input_motor1.GetPwmInput();
-    brushless2_command = input_motor2.GetPwmInput();
-    brushless3_command = input_motor3.GetPwmInput();
-    brushless4_command = input_motor4.GetPwmInput();
+    // brushless1_command = input_motor1.GetPwmInput();
+    // brushless2_command = input_motor2.GetPwmInput();
+    // brushless3_command = input_motor3.GetPwmInput();
+    // brushless4_command = input_motor4.GetPwmInput();
 
-    // output motor
-    pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
-    pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
-    pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
-    pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
-    // nh.loginfo(String(brushless1_command).c_str());
+    // // output motor
+    // pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
+    // pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
+    // pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
+    // pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
+    brushless1_command = command_value.data[0];
+    nh.logwarn(String(brushless1_command).c_str());
 }
 
-ros::Subscriber<std_msgs::Float32MultiArray> sub("yaw_command", &yawCallback);
+ros::Subscriber<std_msgs::Float32MultiArray> sub("yaw_control", &yawCallback);
+
 
 void setup()
 {
@@ -80,9 +81,10 @@ void setup()
     array_msg.data_length = 8;
     array_msg.data = (float *)malloc(sizeof(float) * 8);
 
-    nh.getHardware()->setBaud(115200);
+    // nh.getHardware()->setBaud(115200);
     nh.initNode();
     nh.advertise(arduino_data);
+    nh.subscribe(sub);
 
     //   ---PWMshield--------
     pwm.begin();
@@ -125,7 +127,7 @@ void loop()
         pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
         pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
         pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
-        //ros output
+        // ros output
         array_msg.data[0] = brushless1_command;
         array_msg.data[1] = brushless2_command;
         array_msg.data[2] = brushless3_command;
@@ -140,7 +142,7 @@ void loop()
     delayMicroseconds(500);
 }
 
-//-----割り込みサブルーチン------
+// -----割り込みサブルーチン------
 void SUB_input_motor1()
 {
     input_motor1.ReadPWM();
