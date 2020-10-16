@@ -197,7 +197,7 @@ std_msgs::Float32MultiArray output_motor()
     return input_command;
 }
 
-void yawCallback(const std_msgs::Float32MultiArray &command_value)
+void arduinoCallback(const std_msgs::Float32MultiArray &command_value)
 {
     mode = (int)command_value.data[0];
     int u_x = command_value.data[1];
@@ -220,7 +220,7 @@ void yawCallback(const std_msgs::Float32MultiArray &command_value)
     nh.logwarn(String(brushless1_command).c_str());
 }
 
-ros::Subscriber<std_msgs::Float32MultiArray> sub("yaw_control", &yawCallback);
+ros::Subscriber<std_msgs::Float32MultiArray> sub("arduino_control", &arduinoCallback);
 
 void setup()
 {
