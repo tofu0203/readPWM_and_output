@@ -200,8 +200,8 @@ std_msgs::Float32MultiArray output_motor()
 void arduinoCallback(const std_msgs::Float32MultiArray &command_value)
 {
     mode = (int)command_value.data[0];
-    int u_x = command_value.data[1];
-    int u_yaw = command_value.data[2];
+    float u_x = command_value.data[1];
+    float u_yaw = command_value.data[2];
     if (mode == flight_mode::without_lateral)
     {
         lateral1_force = 0.0;
