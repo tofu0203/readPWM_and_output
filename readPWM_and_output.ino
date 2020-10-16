@@ -121,11 +121,12 @@ int lateral2_thrust_to_servo_command(float thrust)
     return command;
 }
 
-int mode = 0; //mode==0のとき水平方向ロータなし、mode==1のとき水平方向ロータあり
+int mode = 0; //mode==0のとき水平方向ロータなし、mode==1のとき水平方向ロータありyaw制御、mode==2のとき水平方向ロータありx_yaw制御
 enum flight_mode
 {
     without_lateral,
-    with_lateral
+    with_lateral_yaw,
+    with_lateral_x_yaw
 };
 
 std_msgs::Float32MultiArray output_motor()
@@ -155,7 +156,7 @@ std_msgs::Float32MultiArray output_motor()
         pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
         pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
     }
-    else if (mode == with_lateral) //水平方向ロータを使うとき
+    else if ((mode == with_lateral_yaw) || (mode == with_lateral_x_yaw)) //水平方向ロータを使うとき
     {
         //鉛直方向ロータ：yaw操作量をなくしたものを出力
         brushless1_command = input_command.data[4];
@@ -206,7 +207,12 @@ void yawCallback(const std_msgs::Float32MultiArray &command_value)
         lateral1_force = 0.0;
         lateral2_force = 0.0;
     }
-    else if (mode == flight_mode::with_lateral)
+    else if (mode == flight_mode::with_lateral_yaw)
+    {
+        lateral1_force = u_yaw;
+        lateral2_force = -u_yaw;
+    }
+    else if (mode == flight_mode::with_lateral_x_yaw)
     {
         lateral1_force = u_x + u_yaw;
         lateral2_force = u_x - u_yaw;
