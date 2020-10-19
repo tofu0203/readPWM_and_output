@@ -4,7 +4,7 @@
 BrushlessMotor::BrushlessMotor(int pin)
 {
   _MotorPin = pin;
-  pinMode(_MotorPin, INPUT_PULLUP);
+  pinMode(_MotorPin, INPUT);
 }
 
 int BrushlessMotor::GetMotorPin(void)
@@ -12,7 +12,7 @@ int BrushlessMotor::GetMotorPin(void)
   return _MotorPin;
 }
 
-unsigned int BrushlessMotor::GetPwmInput(void)
+int BrushlessMotor::GetPwmInput(void)
 {
   return _pwm_input;
 }

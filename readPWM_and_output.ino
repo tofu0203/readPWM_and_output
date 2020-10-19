@@ -10,11 +10,13 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 //------ros-------
 #include <ros.h>
+#include <std_msgs/Int16MultiArray.h>
 #include <std_msgs/Float32MultiArray.h>
 ros::NodeHandle nh;
-std_msgs::Float32MultiArray array_msg;
-ros::Publisher arduino_data("array_pub", &array_msg);
 
+std_msgs::Int16MultiArray array_msg;
+ros::Publisher arduino_data("array_pub", &array_msg);
+volatile long last_update_time = 0;
 //------input motor setting------
 const int m1_input_pin = 28;
 const int m2_input_pin = 36;
@@ -129,47 +131,50 @@ enum flight_mode
     with_lateral_x_yaw
 };
 
-std_msgs::Float32MultiArray output_motor()
+int input_pwm[4];
+int transform_pwm[4];
+bool output_motor()
 {
-    std_msgs::Float32MultiArray input_command;
-    input_command.data_length = 8;
-    input_command.data = (float *)malloc(sizeof(float) * 8);
-    //DJIよみとった値
-    input_command.data[0] = input_motor1.GetPwmInput();
-    input_command.data[1] = input_motor2.GetPwmInput();
-    input_command.data[2] = input_motor3.GetPwmInput();
-    input_command.data[3] = input_motor4.GetPwmInput();
-    //yaw操作量を打ち消したもの
-    input_command.data[4] = 0.25 * (3.0 * input_command.data[0] + input_command.data[1] - input_command.data[2] + input_command.data[3]);
-    input_command.data[5] = 0.25 * (input_command.data[0] + 3.0 * input_command.data[1] + input_command.data[2] - input_command.data[3]);
-    input_command.data[6] = 0.25 * (-input_command.data[0] + input_command.data[1] + 3.0 * input_command.data[2] + input_command.data[3]);
-    input_command.data[7] = 0.25 * (input_command.data[0] - input_command.data[1] + input_command.data[2] + 3.0 * input_command.data[3]);
-    if (mode == without_lateral) //水平方向ロータを使わないとき
+    if (millis() - last_update_time > 500)
     {
-        //DJIよみとった値をそのまま出力
-        brushless1_command = input_command.data[0];
-        brushless2_command = input_command.data[1];
-        brushless3_command = input_command.data[2];
-        brushless4_command = input_command.data[3];
+        brushless1_command = input_pwm[0];
+        brushless2_command = input_pwm[1];
+        brushless3_command = input_pwm[2];
+        brushless4_command = input_pwm[3];
         pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
         pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
         pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
         pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
+        return false;
+    }
+    //DJIよみとった値
+    input_pwm[0] = input_motor1.GetPwmInput();
+    input_pwm[1] = input_motor2.GetPwmInput();
+    input_pwm[2] = input_motor3.GetPwmInput();
+    input_pwm[3] = input_motor4.GetPwmInput();
+    //yaw操作量を打ち消したもの
+    transform_pwm[0] = (int)(0.25 * (3.0 * input_pwm[0] + input_pwm[1] - input_pwm[2] + input_pwm[3]));
+    transform_pwm[1] = (int)(0.25 * (input_pwm[0] + 3.0 * input_pwm[1] + input_pwm[2] - input_pwm[3]));
+    transform_pwm[2] = (int)(0.25 * (-input_pwm[0] + input_pwm[1] + 3.0 * input_pwm[2] + input_pwm[3]));
+    transform_pwm[3] = (int)(0.25 * (input_pwm[0] - input_pwm[1] + input_pwm[2] + 3.0 * input_pwm[3]));
+    if (mode == without_lateral) //水平方向ロータを使わないとき
+    {
+        //DJIよみとった値をそのまま出力
+        brushless1_command = input_pwm[0];
+        brushless2_command = input_pwm[1];
+        brushless3_command = input_pwm[2];
+        brushless4_command = input_pwm[3];
     }
     else if ((mode == with_lateral_yaw) || (mode == with_lateral_x_yaw)) //水平方向ロータを使うとき
     {
         //鉛直方向ロータ：yaw操作量をなくしたものを出力
-        brushless1_command = input_command.data[4];
-        brushless2_command = input_command.data[5];
-        brushless3_command = input_command.data[6];
-        brushless4_command = input_command.data[7];
-        pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
-        pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
-        pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
-        pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
+        brushless1_command = transform_pwm[0];
+        brushless2_command = transform_pwm[1];
+        brushless3_command = transform_pwm[2];
+        brushless4_command = transform_pwm[3];
 
         //鉛直方向ロータが回り始めた時に水平方向ロータを回す
-        if ((input_command.data[0] >= 1150.0) && (input_command.data[1] >= 1150.0))
+        if ((input_pwm[0] >= 1150.0) && (input_pwm[1] >= 1150.0))
         {
             //水平方向ロータ１コマンド値計算
             int lateral1_servo_command = lateral1_thrust_to_servo_command(lateral1_force);
@@ -194,7 +199,11 @@ std_msgs::Float32MultiArray output_motor()
             pwm.writeMicroseconds(lateral2_servo3_shieldpin, lateral2_servo3_command);
         }
     }
-    return input_command;
+    pwm.writeMicroseconds(m1_output_shieldpin, brushless1_command);
+    pwm.writeMicroseconds(m2_output_shieldpin, brushless2_command);
+    pwm.writeMicroseconds(m3_output_shieldpin, brushless3_command);
+    pwm.writeMicroseconds(m4_output_shieldpin, brushless4_command);
+    return true;
 }
 
 void arduinoCallback(const std_msgs::Float32MultiArray &command_value)
@@ -217,7 +226,7 @@ void arduinoCallback(const std_msgs::Float32MultiArray &command_value)
         lateral1_force = u_x + u_yaw;
         lateral2_force = u_x - u_yaw;
     }
-    nh.logwarn(String(brushless1_command).c_str());
+    // nh.logwarn(String(brushless1_command).c_str());
 }
 
 ros::Subscriber<std_msgs::Float32MultiArray> sub("arduino_control", &arduinoCallback);
@@ -225,10 +234,10 @@ ros::Subscriber<std_msgs::Float32MultiArray> sub("arduino_control", &arduinoCall
 void setup()
 {
     //-----ros------
-    array_msg.data_length = 8;
-    array_msg.data = (float *)malloc(sizeof(float) * 8);
+    array_msg.data_length = 4;
+    array_msg.data = (int16_t *)malloc(sizeof(int16_t) * 4);
 
-    // nh.getHardware()->setBaud(115200);
+    nh.getHardware()->setBaud(115200);
     nh.initNode();
     nh.advertise(arduino_data);
     nh.subscribe(sub);
@@ -250,7 +259,7 @@ void setup()
     attachInterrupt(input_motor3.GetMotorPin(), SUB_input_motor3, CHANGE);
     attachInterrupt(input_motor4.GetMotorPin(), SUB_input_motor4, CHANGE);
 }
-
+bool success_output=false;
 void loop()
 {
     if (!nh.connected())
@@ -263,19 +272,26 @@ void loop()
         pwm.writeMicroseconds(m2_input_pin, brushless2_command);
         pwm.writeMicroseconds(m3_input_pin, brushless3_command);
         pwm.writeMicroseconds(m4_input_pin, brushless4_command);
+        nh.spinOnce();
     }
     else
     {
-        array_msg = output_motor();
+        array_msg.data[0] = input_motor1.GetPwmInput();
+        array_msg.data[1] = input_motor2.GetPwmInput();
+        array_msg.data[2] = input_motor3.GetPwmInput();
+        array_msg.data[3] = input_motor4.GetPwmInput();
+        success_output=output_motor();
+        nh.logwarn(String(success_output).c_str());
         arduino_data.publish(&array_msg);
+        nh.spinOnce();
     }
-    nh.spinOnce();
-    delayMicroseconds(500);
+    delayMicroseconds(1);
 }
 
 // -----割り込みサブルーチン------
 void SUB_input_motor1()
 {
+    last_update_time = millis();
     input_motor1.ReadPWM();
 }
 void SUB_input_motor2()

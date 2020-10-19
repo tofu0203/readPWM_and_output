@@ -9,7 +9,7 @@ public:
 
   void ReadPWM();
   int GetMotorPin();
-  unsigned int GetPwmInput();
+  int GetPwmInput();
 
 private:
   int _MotorPin;
