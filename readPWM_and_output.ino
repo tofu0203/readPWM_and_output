@@ -503,8 +503,32 @@ bool output_motor()
             int lateral2_servo3_command = lateral2_servo_command;
 
             //水平方向ロータ出力
-            pwm.writeMicroseconds(lateral1_brushless_shiledpin, 1800);
-            pwm.writeMicroseconds(lateral2_brushless_shiledpin, 1800);
+            pwm.writeMicroseconds(lateral1_brushless_shiledpin, 1000);
+            pwm.writeMicroseconds(lateral2_brushless_shiledpin, 1000);
+            pwm.writeMicroseconds(lateral1_servo1_shieldpin, lateral1_servo1_command);
+            pwm.writeMicroseconds(lateral1_servo2_shieldpin, lateral1_servo2_command);
+            pwm.writeMicroseconds(lateral1_servo3_shieldpin, lateral1_servo3_command);
+            pwm.writeMicroseconds(lateral2_servo1_shieldpin, lateral2_servo1_command);
+            pwm.writeMicroseconds(lateral2_servo2_shieldpin, lateral2_servo2_command);
+            pwm.writeMicroseconds(lateral2_servo3_shieldpin, lateral2_servo3_command);
+        }
+        else
+        {
+            //水平方向ロータ１コマンド値計算
+            int lateral1_servo_command = lateral1_thrust_to_servo_command(0.0);
+            int lateral1_servo1_command = 3000 - lateral1_servo_command;
+            int lateral1_servo2_command = lateral1_servo_command;
+            int lateral1_servo3_command = lateral1_servo_command;
+
+            //水平方向ロータ２コマンド値計算
+            int lateral2_servo_command = lateral2_thrust_to_servo_command(0.0);
+            int lateral2_servo1_command = 3000 - lateral2_servo_command;
+            int lateral2_servo2_command = lateral2_servo_command;
+            int lateral2_servo3_command = lateral2_servo_command;
+
+            //水平方向ロータ出力
+            pwm.writeMicroseconds(lateral1_brushless_shiledpin, 1000);
+            pwm.writeMicroseconds(lateral2_brushless_shiledpin, 1000);
             pwm.writeMicroseconds(lateral1_servo1_shieldpin, lateral1_servo1_command);
             pwm.writeMicroseconds(lateral1_servo2_shieldpin, lateral1_servo2_command);
             pwm.writeMicroseconds(lateral1_servo3_shieldpin, lateral1_servo3_command);
