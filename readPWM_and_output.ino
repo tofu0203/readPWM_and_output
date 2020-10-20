@@ -503,8 +503,8 @@ bool output_motor()
             int lateral2_servo3_command = lateral2_servo_command;
 
             //水平方向ロータ出力
-            pwm.writeMicroseconds(lateral1_brushless_shiledpin, 1000);
-            pwm.writeMicroseconds(lateral2_brushless_shiledpin, 1000);
+            pwm.writeMicroseconds(lateral1_brushless_shiledpin, 1800);
+            pwm.writeMicroseconds(lateral2_brushless_shiledpin, 1800);
             pwm.writeMicroseconds(lateral1_servo1_shieldpin, lateral1_servo1_command);
             pwm.writeMicroseconds(lateral1_servo2_shieldpin, lateral1_servo2_command);
             pwm.writeMicroseconds(lateral1_servo3_shieldpin, lateral1_servo3_command);
@@ -563,6 +563,7 @@ void arduinoCallback(const std_msgs::Float32MultiArray &command_value)
     {
         lateral1_force = u_x + u_yaw;
         lateral2_force = u_x - u_yaw;
+        nh.logwarn(String(lateral1_force).c_str());
     }
     // nh.logwarn(String(brushless1_command).c_str());
 }
@@ -622,7 +623,7 @@ void loop()
         array_msg.data[2] = input_motor3.GetPwmInput();
         array_msg.data[3] = input_motor4.GetPwmInput();
         success_output = output_motor();
-        nh.logwarn(String(success_output).c_str());
+        // nh.logwarn(String(success_output).c_str());
         arduino_data.publish(&array_msg);
         nh.spinOnce();
     }
